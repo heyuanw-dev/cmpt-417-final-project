@@ -127,6 +127,9 @@ class MDD:
             for i in range(5):
                 child_loc = move(curr_loc, i)
                 child_depth = curr_depth + 1
+                if child_loc[0] < 0 or child_loc[0] >= len(self.my_map) or child_loc[1] == -1 or child_loc[1] >= len(
+                        max(self.my_map)):
+                    continue
                 if not self.my_map[child_loc[0]][child_loc[1]]:
                     child = (child_loc, child_depth)
                     if child_depth <= self.depth:
@@ -158,11 +161,11 @@ class MDD:
                     if t not in visited:
                         visited.add(t)
                         queue.append(t)
-            print(mdd)
+            # print(mdd)
             self.mdd = mdd
 
 
-def BFSRecusive(lst_MDD, prev, curr, max_depth, visited):
+def DFSRecusive(lst_MDD, prev, curr, max_depth, visited):
     curr_nodes, curr_depth = curr
     lst_child = []
     result_mdd = [curr]
@@ -193,7 +196,7 @@ def BFSRecusive(lst_MDD, prev, curr, max_depth, visited):
     for c in lst_child:
         child = (c, curr_depth + 1)
         if child not in visited:
-            temp_mdd = BFSRecusive(lst_MDD, curr_nodes, child, max_depth, visited)
+            temp_mdd = DFSRecusive(lst_MDD, curr_nodes, child, max_depth, visited)
             if temp_mdd:
                 result_mdd.extend(temp_mdd)
                 return result_mdd
@@ -209,7 +212,7 @@ def jointMDD(lst_MDD):
         lst_depth.append(mdd.depth)
     visited = set()
     roots = tuple(lst_root)
-    result_mdd = BFSRecusive(lst_MDD, None, (roots, 0), max(lst_depth), visited)
+    result_mdd = DFSRecusive(lst_MDD, None, (roots, 0), max(lst_depth), visited)
     return result_mdd
 
 
@@ -241,6 +244,7 @@ class ICTSSolver(object):
 
         self.num_of_expanded = 0
         self.CPU_time = 0
+        self.max_len_open_list = [0]
 
         self.open_list = []
         self.heuristics = []
@@ -287,7 +291,7 @@ class ICTSSolver(object):
                     if prev_node in mdds:
                         mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],
                                   prev_mdd=mdds[prev_node])
-                        print(mdd.save_config['path'])
+                        # print(mdd.save_config['path'])
                     else:
                         mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],
                                   prev_mdd=None)
@@ -296,16 +300,20 @@ class ICTSSolver(object):
             result_mdd = jointMDD(lst_mdds)
             path = findPath(result_mdd)
             if path is not None:
-                self.print_results()
+                self.print_results(path)
                 return path
             else:
                 self.num_of_expanded += 1
                 ict.expandNode()
+                # print(len(open_list))
+                self.max_len_open_list.append(len(open_list))
             ict.popNode()
         return None
 
-    def print_results(self):
+    def print_results(self,path):
         print("\n Found a solution! \n")
+        print(path)
         CPU_time = timer.time() - self.start_time
         print("CPU time (s):    {:.2f}".format(CPU_time))
         print("Expanded nodes:  {}".format(self.num_of_expanded))
+        print("Max Length of open list:  {}".format(max(self.max_len_open_list)))

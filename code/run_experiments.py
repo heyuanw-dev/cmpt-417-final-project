@@ -7,7 +7,7 @@ from independent import IndependentSolver
 from prioritized import PrioritizedPlanningSolver
 from visualize import Animation
 from single_agent_planner import get_sum_of_cost
-
+from ICTS import ICTSSolver
 SOLVER = "CBS"
 
 def print_mapf_instance(my_map, starts, goals):
@@ -102,6 +102,10 @@ if __name__ == '__main__':
         elif args.solver == "Prioritized":
             print("***Run Prioritized***")
             solver = PrioritizedPlanningSolver(my_map, starts, goals)
+            paths = solver.find_solution()
+        elif args.solver == 'ICTS':
+            print("***Run ICTS***")
+            solver = ICTSSolver(my_map, starts, goals)
             paths = solver.find_solution()
         else:
             raise RuntimeError("Unknown solver!")
