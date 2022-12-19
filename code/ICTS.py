@@ -12,12 +12,19 @@ def move(loc, dir):
 
 
 def detect_collisions(node1, node2):
-    if len(set(node1)) != len(node2):
-        return True
-    for i in range(len(node1)):
-        if node1[i] == node2[i]:
-            return False
-    return False
+    forward = [pair for pair in zip(node1, node2) if pair[0] != pair[1]]
+    backward = [pair for pair in zip(node2, node1) if pair[0] != pair[1]]
+
+    edge_collisions = set(forward).intersection(set(backward))
+
+    return len(set(node1)) != len(node2) or len(edge_collisions) > 0
+    # if len(set(node1)) != len(node2):
+    #     return True
+    # for i in range(len(node1)):
+    #     if node1[i] == node2[i]:
+    #         return False
+    # return False
+
 
 
 class Node:
@@ -217,6 +224,8 @@ def jointMDD(lst_MDD):
 
 
 def findPath(mdd):
+    if not mdd:
+        return None
     path = [[] for i in range(len(mdd[0][0]))]
 
     for node in mdd:
@@ -298,19 +307,20 @@ class ICTSSolver(object):
                     mdds[node] = mdd
                     lst_mdds.append(mdd)
             result_mdd = jointMDD(lst_mdds)
-            path = findPath(result_mdd)
-            if path is not None:
+            print("result_mdd",result_mdd)
+            if result_mdd:
+                path = findPath(result_mdd)
                 self.print_results(path)
                 return path
             else:
                 self.num_of_expanded += 1
                 ict.expandNode()
-                # print(len(open_list))
+                print(len(open_list))
                 self.max_len_open_list.append(len(open_list))
             ict.popNode()
         return None
 
-    def print_results(self,path):
+    def print_results(self, path):
         print("\n Found a solution! \n")
         print(path)
         CPU_time = timer.time() - self.start_time
