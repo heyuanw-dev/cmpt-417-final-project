@@ -1,5 +1,8 @@
 import collections
 import itertools
+
+import time as timer
+
 from single_agent_planner import compute_heuristics, a_star
 
 
@@ -237,6 +240,7 @@ class ICTSSolver(object):
         self.num_of_agents = len(goals)
 
         self.num_of_expanded = 0
+        self.CPU_time = 0
 
         self.open_list = []
         self.heuristics = []
@@ -244,6 +248,9 @@ class ICTSSolver(object):
             self.heuristics.append(compute_heuristics(my_map, goal))
 
     def find_solution(self):
+
+        self.start_time = timer.time()
+
         # step 1 get init. cost
         root = {'cost': 0,
                 'paths': [],
@@ -289,9 +296,16 @@ class ICTSSolver(object):
             result_mdd = jointMDD(lst_mdds)
             path = findPath(result_mdd)
             if path is not None:
+                self.print_results()
                 return path
             else:
                 self.num_of_expanded += 1
                 ict.expandNode()
             ict.popNode()
         return None
+
+    def print_results(self):
+        print("\n Found a solution! \n")
+        CPU_time = timer.time() - self.start_time
+        print("CPU time (s):    {:.2f}".format(CPU_time))
+        print("Expanded nodes:  {}".format(self.num_of_expanded))
