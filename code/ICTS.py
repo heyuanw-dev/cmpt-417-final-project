@@ -288,7 +288,6 @@ class ICTSSolver(object):
         while len(open_list) > 0:
             curr_nodes = ict.getNextNode()
             curr_depth = curr_nodes.getCost()
-            mdds = {}
             for agent in range(len(curr_depth)):
                 mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],prev_mdd=None)
                 lst_mdds.append(mdd)
