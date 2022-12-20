@@ -44,6 +44,7 @@ def import_mapf_instance(filename):
     rows, columns = [int(x) for x in line.split(' ')]
     rows = int(rows)
     columns = int(columns)
+    print(rows,columns)
     # #rows lines with the map
     my_map = []
     for r in range(rows):

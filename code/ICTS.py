@@ -290,24 +290,9 @@ class ICTSSolver(object):
             curr_depth = curr_nodes.getCost()
             mdds = {}
             for agent in range(len(curr_depth)):
-                node = (agent, curr_depth[agent])
-                # print(node)
-                if node in mdds:
-                    lst_mdds.append(mdds[node])
-                else:
-                    prev_node = (agent, curr_depth[agent] - 1)
-                    # print(prev_node)
-                    if prev_node in mdds:
-                        mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],
-                                  prev_mdd=mdds[prev_node])
-                        # print(mdd.save_config['path'])
-                    else:
-                        mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],
-                                  prev_mdd=None)
-                    mdds[node] = mdd
-                    lst_mdds.append(mdd)
+                mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],prev_mdd=None)
+                lst_mdds.append(mdd)
             result_mdd = jointMDD(lst_mdds)
-            print("result_mdd",result_mdd)
             if result_mdd:
                 path = findPath(result_mdd)
                 self.print_results(path)
