@@ -1,88 +1,205 @@
+# Operator Selection Function for MAPF
+# Used in EPEA*
+from collections import deque
+from collections import defaultdict
 import itertools
+import time
+import math
 
 
-class OSF(object):
-    def __init__(self, loc, goal, valid_dir):
+class OSF:
+    def __init__(self, my_map, goals):
+        """OSF is a singleton that calculates the next operator for any given step."""
+        self.map = my_map
 
-        self.loc = loc
-        self.goal = goal
-        self.dir = valid_dir
+        # usage: h[agent][x][y]
+        self.visited = set()
+        self.indiv_ops = [(1, 0), (-1, 0), (0, 1), (0, -1), (0, 0)]
+        time1 = time.time()
+        self.h = self.get_heuristics(self.map, goals)
+        time2 = time.time()
+        num_agents = len(goals)
+        self.agent_osfs = self.populate_agent_osfs(my_map, num_agents, self.indiv_ops, self.h)
+        self.osf_tables = dict()
 
-        sa_osf = list(range(3))
-        if goal == loc:
-            sa_osf = None
+    def get_heuristics(self, my_map, goals):
+        num_agents = len(goals)
+        all_h = []
+        for i in range(num_agents):
+            this_goal = goals[i]
+            new_h = []
+            for x, row in enumerate(my_map):
+                this_row_h = []
+                for y, cell in enumerate(row):
+                    if cell:
+                        this_row_h.append(math.inf)
+                    else:
+                        this_row_h.append(self.manhattan_distance((x, y), this_goal))
+                new_h.append(this_row_h)
+            all_h.append(new_h)
+        return all_h
+
+    def get_true_distance_heuristics(self, my_map, goals):
+        num_agents = len(goals)
+        all_h = []
+        for i in range(num_agents):
+            this_goal = goals[i]
+            new_h = self.true_distance_bfs(my_map, this_goal)
+            all_h.append(new_h)
+        return all_h
+
+    def true_distance_bfs(self, my_map, goal):
+        h = [[0 for i in range(len(my_map[0]))] for i in range(len(my_map))]
+        q = deque()
+        q.append((goal, 0))
+        visited = set()
+        visited.add(goal)
+        while q:
+            (x, y), this_h = q.popleft()
+            h[x][y] = this_h
+            children = []
+            for op in self.indiv_ops:
+                new_child = (x + op[0], y + op[1])
+                if not my_map[new_child[0]][new_child[1]] and new_child not in visited:
+                    visited.add(new_child)
+                    children.append((new_child, this_h + 1))
+            if children:
+                q.extend(children)
+        return h
+
+    def populate_agent_osfs(self, my_map, num_agents, indiv_ops, h_table):
+        agent_osfs = []
+        for agent in range(num_agents):
+            new_agent_osf = self.populate_one_agent_osf(my_map, h_table[agent], indiv_ops)
+            agent_osfs.append(new_agent_osf)
+        return agent_osfs
+
+    def populate_one_agent_osf(self, my_map, h_table, indiv_ops):
+        agent_osf = {}
+        for x, row in enumerate(my_map):
+            for y, cell in enumerate(row):
+                good_ops = []
+                if cell:
+                    agent_osf[(x, y)] = []
+                else:
+                    for op in indiv_ops:
+                        new_x = x + op[0]
+                        new_y = y + op[1]
+                        if not my_map[new_x][new_y]:
+                            good_ops.append((op, h_table[new_x][new_y]))
+                agent_osf[(x, y)] = good_ops[:]
+        return agent_osf
+
+    def manhattan_distance(self, loc1, loc2):
+        return abs(loc1[0] - loc2[0]) + abs(loc1[1] - loc2[1])
+
+    def get_children_and_next_F(self, node):
+        operators, next_big_F = self.select_operators(node)
+        if not operators:
+            return [], next_big_F
+        new_child_nodes = self.get_new_children(node['agent_locs'], operators)
+        return new_child_nodes, next_big_F
+
+    def select_operators(self, node):
+        agent_locs, big_F, h, g = node['agent_locs'], node['big_F'], node['h'], node['g']
+        small_f = h + g
+        requested_row = big_F - small_f
+        if tuple(agent_locs) in self.osf_tables:
+            op_table = self.osf_tables[tuple(agent_locs)]
         else:
-            x = loc[0]
-            y = loc[1]
-            h = manhattan_distance(goal, loc)
-            delta_f0 = []
-            delta_f1 = []
-            delta_f2 = []
-            for dir in valid_dir:
-                new_x = loc[0] + dir[0]
-                new_y = loc[1] + dir[1]
-                new_h = manhattan_distance((new_x, new_y), goal)
-                if new_h < h:
-                    delta_f0.append(dir)
-                elif new_h == h:
-                    delta_f1.append(dir)
-                elif new_h > h:
-                    delta_f2.append(dir)
+            ops_to_cross_prod = [self.agent_osfs[i][(loc[0], loc[1])] for i, loc in enumerate(agent_locs)]
+            all_possible_ops = list(itertools.product(*ops_to_cross_prod))
+            op_table = self.get_op_table(all_possible_ops, agent_locs, small_f, h, g)
+            if op_table:
+                self.osf_tables[tuple(agent_locs)] = op_table
+        delta_big_F_next = self.get_delta_big_F_next(op_table, requested_row)
+        next_big_F = small_f + delta_big_F_next
+        if not op_table[requested_row]:
+            return [], next_big_F
+        all_ops = op_table[requested_row]['operators']
+        good_ops = []
+        for ops in all_ops:
+            just_ops = tuple([single_op[0] for single_op in ops])
+            good_ops.append(just_ops)
+        return good_ops, next_big_F
 
-            sa_osf[0] = [delta_f0, 0, 1]  # operators, delta f, F_next
-            sa_osf[1] = [delta_f1, 1, 2]
-            sa_osf[2] = [delta_f2, 2, float('inf')]
-        self.osf = sa_osf
+    def get_op_table(self, all_possible_ops, agent_locs, small_f, h, g):
+        num_agents = len(agent_locs)
+        max_rows = 2 * num_agents + 1
+        op_table = [None for i in range(max_rows)]
+        for op in all_possible_ops:
+            new_op_table_row = dict()
+            this_h = self.get_heuristics_from_op(op)
+            this_g = g + num_agents  # We make a decision for everyone simultaneously
+            this_small_f = this_h + this_g
+            delta_small_f = this_small_f - small_f
+            if not op_table[delta_small_f]:
+                new_op_table_row['delta_h'] = this_h - h
+                new_op_table_row['operators'] = [op]
+                op_table[delta_small_f] = new_op_table_row
+            else:
+                op_table[delta_small_f]['operators'].append(op)
+        return op_table
 
+    def get_heuristics_from_op(self, indiv_ops):
+        h = 0
+        for op in indiv_ops:
+            h += op[1]
+        return h
 
-def manhattan_distance(loc1, loc2):
-    return abs(loc1[0] - loc2[0]) + abs(loc1[1] - loc2[1])
+    def list_of_locations_to_heuristic(self, locs):
+        h = 0
+        for i, loc in enumerate(locs):
+            h += self.h[i][loc[0]][loc[1]]
+        return h
 
+    def get_new_children(self, locs, group_ops):
+        children = []
+        for op in group_ops:
+            new_locs = tuple(self.get_new_locations(op, locs))
+            if not self.move_invalid(locs, new_locs):
+                children.append(new_locs)
+        return children
 
-def multi_agent_osf(locations, value, goals, my_map):
-    num_of_agents = len(goals)
-    osf_tables = []
-    for i in range(num_of_agents):
-        valid_dir = find_valid_directions(my_map, locations[i])
-        osf_i = OSF(locations[i], goals[i], valid_dir)
-        osf_tables.append(osf_i.osf)
+    def get_new_locations(self, ops, locs):
+        new_locs = []
+        for i, op in enumerate(ops):
+            new_x = locs[i][0] + op[0]
+            new_y = locs[i][1] + op[1]
+            new_locs.append((new_x, new_y))
+        return new_locs
 
-    all_combination = osf_tables[0]
-    for j in range(1, num_of_agents):
-        all_combination = itertools.product(osf_tables[j], all_combination)
-        # if j == num_of_agents-1:
-        #     for n in all_combination:
-        #         print(n)
-        #     all_combination = all_combination[0] + all_combination[1]
+    def get_delta_big_F_next(self, op_table, requested_row):
+        if requested_row > len(op_table):
+            return math.inf
+        my_index = requested_row
+        if not op_table[requested_row]:
+            my_index = -1
+        next_start_index = my_index + 1
+        delta_big_F_next = math.inf
+        for i in range(next_start_index, len(op_table)):
+            if op_table[i]:
+                return i
+        return delta_big_F_next
 
-    operators = []
-    f_next = float('inf')
-    for combination in all_combination:
-        f = 0
-        for row in combination:
-            if row[0]:
-                f = f + row[1]
-        if f == value:
-            temp = combination[0][0]
-            for k in range(1, num_of_agents):
-                temp = itertools.product(combination[k][0], temp)
-            for n in temp:
-                operators.append(n)
+    def move_invalid(self, this_locs, next_locs):
+        vertex_collision = len(set(next_locs)) != len(next_locs)
+        edge_collision = self.has_edge_collisions(this_locs, next_locs)
+        return vertex_collision or edge_collision
 
-        elif f > value:
-            f_next = min(f_next, f)
+    def has_edge_collisions(self, this_locs, next_locs):
+        forward = [pair for pair in zip(this_locs, next_locs) if pair[0] != pair[1]]
+        backward = [pair for pair in zip(next_locs, this_locs) if pair[0] != pair[1]]
+        edge_collisions = set(forward).intersection(set(backward))
+        return len(edge_collisions) > 0
 
-    print(operators, f_next)
-    return operators, f_next
-
-
-def find_valid_directions(my_map, loc):
-    directions = [(0, -1), (1, 0), (0, 1), (-1, 0), (0, 0)]
-    valid_directions = []
-    for i in range(5):
-        x = loc[0] + directions[i][0]
-        y = loc[1] + directions[i][1]
-        if not my_map[x][y]:  # Check if the cell is a valid position
-            valid_directions.append(directions[i])
-
-    return valid_directions
+    def print_heuristics(self):
+        for i, agent_table in enumerate(self.h):
+            print("Agent", i, "heuristics:")
+            for row in agent_table:
+                for cell in row:
+                    if cell != math.inf:
+                        print(cell, end=" ")
+                    else:
+                        print(". ", end="")
+                print("\n")
