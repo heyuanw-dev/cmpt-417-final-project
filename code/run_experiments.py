@@ -8,6 +8,7 @@ from prioritized import PrioritizedPlanningSolver
 from visualize import Animation
 from single_agent_planner import get_sum_of_cost
 from ICTS import ICTSSolver
+from epea import EPEASolver
 SOLVER = "CBS"
 
 def print_mapf_instance(my_map, starts, goals):
@@ -107,6 +108,10 @@ if __name__ == '__main__':
         elif args.solver == 'ICTS':
             print("***Run ICTS***")
             solver = ICTSSolver(my_map, starts, goals)
+            paths = solver.find_solution()
+        elif args.solver == 'EPEA':
+            print("***Run EPEA***")
+            solver = EPEASolver(my_map, starts, goals)
             paths = solver.find_solution()
         else:
             raise RuntimeError("Unknown solver!")

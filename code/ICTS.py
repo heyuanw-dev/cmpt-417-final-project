@@ -26,7 +26,6 @@ def detect_collisions(node1, node2):
     # return False
 
 
-
 class Node:
     def __init__(self, costs):
         self.child = []
@@ -289,7 +288,7 @@ class ICTSSolver(object):
             curr_nodes = ict.getNextNode()
             curr_depth = curr_nodes.getCost()
             for agent in range(len(curr_depth)):
-                mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent],prev_mdd=None)
+                mdd = MDD(self.my_map, agent, self.starts[agent], self.goals[agent], curr_depth[agent], prev_mdd=None)
                 lst_mdds.append(mdd)
             result_mdd = jointMDD(lst_mdds)
             if result_mdd:
