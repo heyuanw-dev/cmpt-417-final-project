@@ -11,6 +11,6 @@ Replace ```Indepenent``` with desired MAPF solver, replace ```instances/exp1.txt
 
 Test all instances by running:
 ```
-python run_experiments.py --instance "instances/test_*" --solver CBS --batch
+$ python run_experiments.py --instance "instances/test_*" --solver CBS --batch
 ```
 (This may take a while depending on your computer.) The ```batch``` command creates an output file *results.csv* which contains all the test results.
