@@ -1,0 +1,5 @@
+{"algorithm": "EPEA", "osf time": 0.0010929107666015625, "expanded nodes": 23, "max_open_list_length": 27, "time": 0.002708911895751953}
+{"algorithm": "EPEA", "osf time": 0.001233816146850586, "expanded nodes": 12, "max_open_list_length": 17, "time": 0.01778697967529297}
+{"algorithm": "EPEA", "osf time": 0.001416921615600586, "expanded nodes": 3443, "max_open_list_length": 2064, "time": 17.033620834350586}
+{"algorithm": "EPEA", "osf time": 0.0014808177947998047, "expanded nodes": 109, "max_open_list_length": 93, "time": 0.009603023529052734}
+{"algorithm": "EPEA", "osf time": 0.0014710426330566406, "expanded nodes": 23, "max_open_list_length": 27, "time": 0.0023610591888427734}

@@ -39,34 +39,6 @@ class OSF:
             all_h.append(new_h)
         return all_h
 
-    def get_true_distance_heuristics(self, my_map, goals):
-        num_agents = len(goals)
-        all_h = []
-        for i in range(num_agents):
-            this_goal = goals[i]
-            new_h = self.true_distance_bfs(my_map, this_goal)
-            all_h.append(new_h)
-        return all_h
-
-    def true_distance_bfs(self, my_map, goal):
-        h = [[0 for i in range(len(my_map[0]))] for i in range(len(my_map))]
-        q = deque()
-        q.append((goal, 0))
-        visited = set()
-        visited.add(goal)
-        while q:
-            (x, y), this_h = q.popleft()
-            h[x][y] = this_h
-            children = []
-            for op in self.indiv_ops:
-                new_child = (x + op[0], y + op[1])
-                if not my_map[new_child[0]][new_child[1]] and new_child not in visited:
-                    visited.add(new_child)
-                    children.append((new_child, this_h + 1))
-            if children:
-                q.extend(children)
-        return h
-
     def populate_agent_osfs(self, my_map, num_agents, indiv_ops, h_table):
         agent_osfs = []
         for agent in range(num_agents):
@@ -85,6 +57,8 @@ class OSF:
                     for op in indiv_ops:
                         new_x = x + op[0]
                         new_y = y + op[1]
+                        if not (0 <= new_x < len(my_map)) or not (0 <= new_y < len(my_map[0])):
+                            continue
                         if not my_map[new_x][new_y]:
                             good_ops.append((op, h_table[new_x][new_y]))
                 agent_osf[(x, y)] = good_ops[:]
@@ -192,14 +166,3 @@ class OSF:
         backward = [pair for pair in zip(next_locs, this_locs) if pair[0] != pair[1]]
         edge_collisions = set(forward).intersection(set(backward))
         return len(edge_collisions) > 0
-
-    def print_heuristics(self):
-        for i, agent_table in enumerate(self.h):
-            print("Agent", i, "heuristics:")
-            for row in agent_table:
-                for cell in row:
-                    if cell != math.inf:
-                        print(cell, end=" ")
-                    else:
-                        print(". ", end="")
-                print("\n")

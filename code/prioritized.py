@@ -28,6 +28,10 @@ class PrioritizedPlanningSolver(object):
 
         start_time = timer.time()
         result = []
+        # Task 1.5:
+        # constraints = [{'agent': 1, 'loc': [(1, 4), (1, 3)], 'timestep': 2},
+        #                {'agent': 1, 'loc': [[(1, 3), (1, 2)]], 'timestep': 2},
+        #                {'agent': 1, 'loc': [(1, 2)], 'timestep': 1}]
         constraints = []
 
         for i in range(self.num_of_agents):  # Find path for each agent
@@ -43,12 +47,17 @@ class PrioritizedPlanningSolver(object):
             #            * path contains the solution path of the current (i'th) agent, e.g., [(1,1),(1,2),(1,3)]
             #            * self.num_of_agents has the number of total agents
             #            * constraints: array of constraints to consider for future A* searches
-
-
+            for j in range(len(path)):
+                cell1 = path[j]
+                for k in range(i + 1, self.num_of_agents):
+                    constraints.append({'agent': k, 'loc': [cell1], 'timestep': j, 'positive': False})  # Vertex constraint
+                    if j != len(path) - 1:
+                        cell2 = path[j + 1]
+                        constraints.append({'agent': k, 'loc': [[cell2, cell1]], 'timestep': j + 1, 'positive': False})  # Edge constraint
             ##############################
-
+            constraints.insert(0, (self.goals[i], len(path)))  # Task 2.3: Adding Additional Constraints
+            print(path)
         self.CPU_time = timer.time() - start_time
-
         print("\n Found a solution! \n")
         print("CPU time (s):    {:.2f}".format(self.CPU_time))
         print("Sum of costs:    {}".format(get_sum_of_cost(result)))
